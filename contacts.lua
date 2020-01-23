@@ -7,25 +7,25 @@
 -- local dui = GetDuiHandle(duiObj)
 -- local tx = CreateRuntimeTextureFromDuiHandle(txd, 'CHAR_PNGTEST', dui)
 
-local txd = CreateRuntimeTxd('CHAR_LINUS')
-local duiObj = CreateDui('https://i.imgur.com/mt4F1FL.jpg', 64, 64)
-_G.duiObj = duiObj
-local dui = GetDuiHandle(duiObj)
-local tx = CreateRuntimeTextureFromDuiHandle(txd, 'CHAR_LINUS', dui)
+-- local txd = CreateRuntimeTxd('CHAR_LINUS')
+-- local duiObj = CreateDui('https://i.imgur.com/mt4F1FL.jpg', 64, 64)
+-- _G.duiObj = duiObj
+-- local dui = GetDuiHandle(duiObj)
+-- local tx = CreateRuntimeTextureFromDuiHandle(txd, 'CHAR_LINUS', dui)
 
 contacts = {
-	Linus = { 
 	-- result from calling linus:
 	-- he hangs up and sends a text message with a randomize "tech tip"
 	-- use inspiration from:
 	-- https://twitter.com/LinusTechTip_
-		name = "LinusTechTip", 
-		icon = "CHAR_LINUS",
-	},
-	Cole = {
-		name = "Cole", 
-		icon = "CHAR_FILMNOIR",
-	},
+	-- Linus = { 
+		-- name = "LinusTechTip", 
+		-- icon = "CHAR_LINUS",
+	-- },
+	-- Cole = {
+		-- name = "Cole", 
+		-- icon = "CHAR_FILMNOIR",
+	-- },
 	-- XinVoliteer = {
 		-- name = "Xin Voliteer", 
 		-- icon = "CHAR_XIN",

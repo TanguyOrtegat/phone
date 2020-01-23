@@ -1,6 +1,66 @@
 
+TakePhoto = N_0xa67c35c56eb1bd9d
+WasPhotoTaken = N_0x0d6ca79eeebd8ca3
+SavePhoto = N_0x3dec726c25a11bac
+ClearPhoto = N_0xd801cc02177fa3f1
+
+CellCamSetHorizontalOffset = N_0x1b0b4aeed5b9b41c -- -1.0 to 1.0 but there's actually no limit
+CellCamSetVerticalOffset = N_0x3117d84efa60f77b -- 0.0 to 2.0
+CellCamSetRoll = N_0x15e69e2802c24b8d -- -1.0 to 1.0
+CellCamSetDistance = N_0x53f4892d18ec90a4 -- -1.0 to 1.0
+
+CellCamSetHeadY = N_0xd6ade981781fca09 -- -1.0 to 1.0
+CellCamSetHeadRoll = N_0xf1e22dc13f5eebad -- -1.0 to 1.0
+CellCamSetHeadHeight = N_0x466da42c89865553 -- -1.0 to 0.0
+
+function math.clamp(value, minClamp, maxClamp)
+	return math.min(maxClamp, math.max(value, minClamp))
+end
+
+function lerp(x1, x2, t) 
+    return x1 + (x2 - x1) * t
+end
+
+-- function DrawSelectionMsg(text, duration) -- unused
+	-- Citizen.CreateThread(function()
+		
+		-- local duration = duration or 1000
+		
+		-- local startTime = GetGameTimer()
+		-- local endTime = GetGameTimer() + duration
+		
+		-- while GetGameTimer() < endTime do 
+			-- Wait(0)
+			
+			-- local now = GetGameTimer()
+			-- local scale = (endTime - now) / duration
+			
+			-- local yPos = lerp(0.0, 0.1, scale)
+			
+			-- SetTextFont(0)
+			-- SetTextProportional(1)
+			-- SetTextScale(0.0, 0.55)
+			-- SetTextColour(255, 255, 255, math.max(0, math.floor(scale * 255)))
+			-- SetTextDropshadow(0, 0, 0, 0, 255)
+			-- SetTextEdge(2, 0, 0, 0, 150)
+			-- SetTextDropShadow()
+			-- SetTextOutline()
+			-- SetTextEntry("STRING")
+			-- SetTextCentre(1)
+			-- AddTextComponentString(text)
+			-- DrawText(0.5, yPos)
+		-- end
+	-- end)
+-- end
+
 function chatMessage(msg)
 	TriggerEvent('chatMessage', '', {0, 0, 0}, msg)
+end
+
+function BusyspinnerOn(string)
+	BeginTextCommandBusyspinnerOn("STRING")
+	AddTextComponentString(string)
+	EndTextCommandBusyspinnerOn(1)
 end
 
 function Notification(text,duration)
@@ -11,6 +71,12 @@ function Notification(text,duration)
         Citizen.Wait(duration)
         RemoveNotification(Notification)
     end)
+end
+
+function DisplayHelpText(helpText, time)
+	BeginTextCommandDisplayHelp("STRING")
+	AddTextComponentSubstringWebsite(helpText)
+	EndTextCommandDisplayHelp(0, 0, 1, time or -1)
 end
 
 function GetPlayerFromName(namePart)
@@ -51,20 +117,71 @@ phone = false
 phoneId = 0
 
 phones = {
-[0] = "Michael's",
-[1] = "Trevor's",
-[2] = "Franklin's",
-[4] = "Prologue"
+	[0] = "Michael's",
+	[1] = "Trevor's",
+	[2] = "Franklin's",
+	[4] = "Prologue"
 }
 
 days = {
-[1] = "Mon",
-[2] = "Tue",
-[3] = "Wed",
-[4] = "Thu",
-[5] = "Fri",
-[6] = "Sat",
-[7] = "Sun"
+	[1] = "Mon",
+	[2] = "Tue",
+	[3] = "Wed",
+	[4] = "Thu",
+	[5] = "Fri",
+	[6] = "Sat",
+	[7] = "Sun"
+}
+
+filters = {
+	"phone_cam",
+	"phone_cam1",
+	"phone_cam10",
+	"phone_cam11",
+	"phone_cam12",
+	"phone_cam13",
+	"phone_cam2",
+	"phone_cam3",
+	"phone_cam3_REMOVED",
+	"phone_cam4",
+	"phone_cam5",
+	"phone_cam6",
+	"phone_cam7",
+	"phone_cam8",
+	"phone_cam8_REMOVED",
+	"phone_cam9",
+}
+
+
+-- TODO: maybe replace mp gestures with sp character gestures?
+
+-- anim@mp_player_intselfie ..
+gestureDicts = {
+	"blow_kiss",
+	"dock",
+	"jazz_hands",
+	"the_bird",
+	"thumbs_up",
+	"wank",
+}
+
+-- gestureNames = {
+	-- "Blow Kiss",
+	-- "Dock",
+	-- "Jazz Hands",
+	-- "The Bird",
+	-- "Thumbs Up",
+	-- "Wank",
+-- }
+
+-- sorry i want to name them better
+gestureNames = {
+	"Blow Kiss",
+	"OK",
+	"Arrested",
+	"FUCK",
+	"Thumbs Up",
+	"Wank",
 }
 
 iFruitDefault = 	"Phone_Wallpaper_ifruitdefault"

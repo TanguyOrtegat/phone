@@ -1,13 +1,62 @@
 
 frontCam = false
+doingGesture = false
 
 messageCount = 0
 
 loadedContacts = {}
-
 pedHeadshots = {}
 
 RegisterNetEvent('phone_server:receiveMessage')
+
+-- INPUT_REPLAY_CYCLEMARKERLEFT = 312
+-- INPUT_REPLAY_CYCLEMARKERRIGHT = 313
+-- INPUT_CELLPHONE_CAMERA_EXPRESSION = 186
+
+function loopGestures()
+	currentGestureDict = 0
+	doingGesture = false
+	while frontCam do Wait(0)
+		if not IsControlPressed(0, 186) then
+			if IsControlJustPressed(0, 313) then
+				currentGestureDict = (currentGestureDict + 1) % #gestureDicts
+				DisplayHelpText("Action Selected:\n" .. gestureNames[currentGestureDict+1], 1000)
+			end
+			if IsControlJustPressed(0, 312) then
+				if currentGestureDict-1 < 0 then 
+					currentGestureDict = #gestureDicts-1
+				else
+					currentGestureDict = (currentGestureDict - 1)
+				end
+				DisplayHelpText("Action Selected:\n" .. gestureNames[currentGestureDict+1], 1000)
+			end
+		end
+	
+		gestureDir = "anim@mp_player_intselfie" .. gestureDicts[currentGestureDict+1]
+		
+		if IsControlPressed(0, 186) then
+			if doingGesture == false then
+					doingGesture = true
+				if not HasAnimDictLoaded(gestureDir) then
+					RequestAnimDict(gestureDir)
+					repeat Wait(0) until HasAnimDictLoaded(gestureDir)
+				end
+				TaskPlayAnim(PlayerPedId(), gestureDir, "enter", 4.0, 4.0, -1, 128, -1.0, false, false, false)
+				Wait(GetAnimDuration(gestureDir, "enter")*1000)
+				TaskPlayAnim(PlayerPedId(), gestureDir, "idle_a", 8.0, 4.0, -1, 129, -1.0, false, false, false)
+			end
+		else
+			if doingGesture == true then
+				doingGesture = false
+				TaskPlayAnim(PlayerPedId(), gestureDir, "exit", 4.0, 4.0, -1, 128, -1.0, false, false, false)
+				Wait(GetAnimDuration(gestureDir, "exit")*1000)
+				RemoveAnimDict(gestureDir)
+			end
+		end
+	end
+	TaskPlayAnim(PlayerPedId(), "", "", 4.0, 4.0, -1, 128, -1.0, false, false, false)
+	RemoveAnimDict(gestureDir)
+end
 
 function OpenApp(app)
 	Citizen.CreateThread(function()
@@ -72,8 +121,12 @@ function OpenApp(app)
 							-- print(i.." | "..GetPlayerName(i))
 							local handle = RegisterPedheadshot(GetPlayerPed(i))
 							if IsPedheadshotValid(handle) then
+								BeginTextCommandBusyspinnerOn("STRING")
+								AddTextComponentString("LOADING "..GetPlayerName(i):upper().."'s HEADSHOT")
+								EndTextCommandBusyspinnerOn(1)
 								repeat Wait(0) until IsPedheadshotReady(handle)
 								txdString = GetPedheadshotTxdString(handle)
+								BusyspinnerOff()
 							else
 								txdString = "CHAR_DEFAULT" -- something went wrong!
 							end
@@ -256,6 +309,7 @@ function OpenApp(app)
 		
 		if app == 6 then -- BROWSER
 			-- local resX, resY = GetActiveScreenResolution()
+			-- local webX, webY = 1920, 1080
 			-- local webX, webY = 1280, 900
 			local webX, webY = 640, 450
 			
@@ -399,6 +453,20 @@ function OpenApp(app)
 			-- Wait(500)
 			CellCamActivate(true, true)
 			CellFrontCamActivate(frontCam)
+			
+			local xOffset = 0.0
+			local yOffset = 1.0
+			local roll = 0.0
+			local distance = 1.0
+			
+			local headY = 0.0
+			local headRoll = 0.0
+			local headHeight = 0.0
+			
+			local currentTimecyc = 0
+			
+			currentGestureDict = 0
+			
 			while true do Wait(0)
 				HideHudComponentThisFrame(7)
 				HideHudComponentThisFrame(8)
@@ -406,18 +474,91 @@ function OpenApp(app)
 				HideHudComponentThisFrame(6)
 				HideHudComponentThisFrame(19)
 				HideHudAndRadarThisFrame()
+				
+				local mouseX = GetDisabledControlNormal(0, 1) / 2.0
+				local mouseY = -GetDisabledControlNormal(0, 2) / 2.0
+				
+				-- local ForwardControl = -GetDisabledControlNormal(0, 31) / 12.0
+				local LeftRightControl = GetDisabledControlNormal(0, 30) / 12.0
+				local FovControl = GetDisabledControlNormal(0, 39) / 5.0
+				-- local RollControl = (-GetDisabledControlNormal(0, 44) + GetDisabledControlNormal(0, 38)) / 12.0
+				
+				if IsControlPressed(0, 179) and frontCam == true then -- Hold Spacebar to adjust camera position
+					DisableControlAction(0, 1, true)
+					DisableControlAction(0, 2, true)
+					
+					xOffset = math.clamp(xOffset + mouseX, 0.0, 1.0)
+					yOffset = math.clamp(yOffset + mouseY, 0.0, 2.0)
+					roll = math.clamp(roll + LeftRightControl, -1.0, 1.0)
+					-- distance = math.clamp(distance + FovControl, 0.0, 1.0)
+				elseif IsControlPressed(0, 185) and frontCam == true then -- Hold F to adjust head rotation
+					DisableControlAction(0, 1, true)
+					DisableControlAction(0, 2, true)
+					
+					headY = math.clamp(headY + mouseX, -1.0, 1.0)
+					headRoll = math.clamp(headRoll + LeftRightControl, -1.0, 1.0)
+					headHeight = math.clamp(headHeight + mouseY, -1.0, 1.0)
+				end
+				
+				CellCamSetHorizontalOffset(xOffset)
+				CellCamSetVerticalOffset(yOffset)
+				CellCamSetRoll(roll)
+				CellCamSetDistance(distance)
+				
+				CellCamSetHeadY(headY)
+				CellCamSetHeadRoll(headRoll)
+				CellCamSetHeadHeight(headHeight)
 
 				-- local x,y,z=table.unpack(GetEntityRotation(PlayerPedId()))
 				-- local rotz=GetGameplayCamRelativeHeading()
 				-- rz = (z+rotz)
 				-- SetEntityRotation(PlayerPedId(), x,y,rz+180.0)
 
+				if (IsControlJustPressed(3, 174)) then -- LEFT
+					MoveFinger(3)
+					currentTimecyc = currentTimecyc - 1
+					if currentTimecyc < 0 then currentTimecyc = #filters end
+					if currentTimecyc == 0 then 
+						ClearTimecycleModifier() 
+					else
+						SetTimecycleModifier(filters[currentTimecyc])
+					end
+					DisplayHelpText("Filter Selected: " .. currentTimecyc+1, 1000)
+				end
+
+				if (IsControlJustPressed(3, 175)) then -- RIGHT
+					MoveFinger(4)
+					currentTimecyc = currentTimecyc + 1
+					if currentTimecyc > #filters then currentTimecyc = 0 end
+					
+					if currentTimecyc == 0 then 
+						ClearTimecycleModifier() 
+					else
+						SetTimecycleModifier(filters[currentTimecyc])
+					end
+					DisplayHelpText("Filter Selected: " .. currentTimecyc+1, 1000)
+					-- sorry
+				end
+
 				if IsControlJustPressed(3, 172) then -- UP
 					frontCam = not frontCam
 					CellFrontCamActivate(frontCam)
+					Citizen.CreateThread(loopGestures)
+				end
+
+				if (IsControlJustPressed(3, 176)) then -- SELECT
+					MoveFinger(5)
+					PlaySoundFrontend(-1, "Menu_Accept", "Phone_SoundSet_Michael", 1)
+					TakePhoto()
+					if (WasPhotoTaken() and SavePhoto(-1)) then
+						-- SetLoadingPromptTextEntry("CELL_278")
+						-- ShowLoadingPrompt(1)
+						ClearPhoto()
+					end
 				end
 				
 				if IsControlJustReleased(3, 177) then -- BACK
+					ClearTimecycleModifier() 
 					PlaySoundFrontend(-1, "Menu_Back", "Phone_SoundSet_Michael", 1)
 					PushScaleformMovieFunction(GlobalScaleform, "DISPLAY_VIEW")
 					PushScaleformMovieFunctionParameterInt(1) -- MENU PAGE
