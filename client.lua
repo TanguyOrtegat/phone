@@ -1,7 +1,7 @@
 
 frontCam = false
 doingGesture = false
-
+alternateBrowserControl = false
 messageCount = 0
 
 loadedContacts = {}
@@ -363,24 +363,35 @@ function OpenApp(app)
 					tx = CreateRuntimeTextureFromDuiHandle(txd, 'kgv_phone_tex', dui)
 				end
 				
-				if (IsControlPressed(3, 172)) then -- UP
-					MoveFinger(1)
-					cursorX = cursorX + cursorSpeed
-				end
+				if alternateBrowserControl then
+					DisableControlAction(0, 1)
+					DisableControlAction(0, 2)
+				
+					local mouseX = GetDisabledControlNormal(0, 1) * cursorSpeed
+					local mouseY = GetDisabledControlNormal(0, 2) * cursorSpeed
+					
+					cursorX = cursorX - mouseY
+					cursorY = cursorY + mouseX
+				else
+					if (IsControlPressed(3, 172)) then -- UP
+						MoveFinger(1)
+						cursorX = cursorX + cursorSpeed
+					end
 
-				if (IsControlPressed(3, 173)) then -- DOWN
-					MoveFinger(2)
-					cursorX = cursorX - cursorSpeed
-				end
+					if (IsControlPressed(3, 173)) then -- DOWN
+						MoveFinger(2)
+						cursorX = cursorX - cursorSpeed
+					end
 
-				if (IsControlPressed(3, 174)) then -- LEFT
-					MoveFinger(3)
-					cursorY = cursorY - cursorSpeed
-				end
+					if (IsControlPressed(3, 174)) then -- LEFT
+						MoveFinger(3)
+						cursorY = cursorY - cursorSpeed
+					end
 
-				if (IsControlPressed(3, 175)) then -- RIGHT
-					MoveFinger(4)
-					cursorY = cursorY + cursorSpeed
+					if (IsControlPressed(3, 175)) then -- RIGHT
+						MoveFinger(4)
+						cursorY = cursorY + cursorSpeed
+					end
 				end
 
 				if (IsControlJustPressed(3, 180)) then -- SCROLL DOWN
@@ -460,8 +471,9 @@ function OpenApp(app)
 		
 		if app == 8 then -- SETTINGS
 		
-			AddSetting(GlobalScaleform, 1, "Theme: "..themes[theme+1])
-			AddSetting(GlobalScaleform, 2, "Background: "..wallpaperNames[wallpaper+1])
+			AddSetting(GlobalScaleform, 1, "Theme: "..themes[theme])
+			AddSetting(GlobalScaleform, 2, "Background: "..wallpaperNames[wallpaper])
+			AddSetting(GlobalScaleform, 3, "Browser control: "..GetControlModeName(alternateBrowserControl))
 			
 			PushScaleformMovieFunction(GlobalScaleform, "DISPLAY_VIEW")
 			PushScaleformMovieFunctionParameterInt(18) -- MENU PAGE
@@ -470,6 +482,8 @@ function OpenApp(app)
 			
 			page = 1
 			
+			currentRow = 0
+			
 			while true do
 				Wait(0)
 
@@ -477,44 +491,45 @@ function OpenApp(app)
 					NavigateMenu(GlobalScaleform, 1)
 					MoveFinger(1)
 					currentRow = currentRow - 1
-					-- SetRadioToStationIndex((GetPlayerRadioStationIndex() + 1) % MaxRadioStationIndex())
+					if currentRow < 0 then currentRow = #settings - 1 end
 				end
 
 				if (IsControlJustPressed(3, 173)) then -- DOWN
 					NavigateMenu(GlobalScaleform, 3)
 					MoveFinger(2)
 					currentRow = currentRow + 1
-					-- SetRadioToStationIndex((GetPlayerRadioStationIndex() - 1) % MaxRadioStationIndex())
+					if currentRow >= #settings then currentRow = 0 end
 				end
+				
 
 				if (IsControlJustPressed(3, 174)) then -- LEFT
 					MoveFinger(3)
 					PlaySoundFrontend(-1, "Menu_Accept", "Phone_SoundSet_Michael", 1)
 					
-					if math.abs(currentRow) % 2 == 0 then
-						theme = (theme - 1) % 7
-						if theme < 1 then theme = 6 end
-						AddSetting(GlobalScaleform, 1, "Theme: "..themes[theme+1])
-						SetResourceKvpInt("KGV:PHONE:THEME", theme+1)
+					if currentRow == 0 then
+						theme = theme - 1
+						if theme < 1 then theme = #themes end
+						AddSetting(GlobalScaleform, 1, "Theme: "..themes[theme])
+						SetResourceKvpInt("KGV:PHONE:THEME", theme)
 
 						PushScaleformMovieFunction(GlobalScaleform, "SET_THEME")
-						PushScaleformMovieFunctionParameterInt(theme+1) -- 1-8
+						PushScaleformMovieFunctionParameterInt(theme) -- 1-8
 						PopScaleformMovieFunctionVoid()
-						N_0x83a169eabcdb10a2(PlayerPedId(), theme)
+						N_0x83a169eabcdb10a2(PlayerPedId(), theme-1)
 						
 						PushScaleformMovieFunction(GlobalScaleform, "DISPLAY_VIEW")
 						PushScaleformMovieFunctionParameterInt(18) -- MENU PAGE
 						PushScaleformMovieFunctionParameterInt(0) -- INDEX
 						PopScaleformMovieFunctionVoid()
-					elseif math.abs(currentRow) % 2 == 1 then
-						wallpaper = (wallpaper - 1) % #wallpapers
-						if wallpaper < 1 then wallpaper = (#wallpapers-1) end
-						AddSetting(GlobalScaleform, 2, "Background: "..wallpaperNames[wallpaper+1])
-						SetResourceKvpInt("KGV:PHONE:WALLPAPER", wallpaper+1)
+					elseif currentRow == 1 then
+						wallpaper = wallpaper - 1
+						if wallpaper < 1 then wallpaper = #wallpapers end
+						AddSetting(GlobalScaleform, 2, "Background: "..wallpaperNames[wallpaper])
+						SetResourceKvpInt("KGV:PHONE:WALLPAPER", wallpaper)
 
 						PushScaleformMovieFunction(GlobalScaleform, "SET_BACKGROUND_CREW_IMAGE")
 						BeginTextComponent("STRING")
-						AddTextComponentSubstringPlayerName(wallpapers[wallpaper+1])
+						AddTextComponentSubstringPlayerName(wallpapers[wallpaper])
 						EndTextComponent()
 						PopScaleformMovieFunctionVoid()
 						
@@ -523,35 +538,50 @@ function OpenApp(app)
 						PushScaleformMovieFunctionParameterInt(1) -- INDEX
 						PopScaleformMovieFunctionVoid()
 					end
-					
 				end
+				
+				-- if (IsControlJustPressed(3, 175)) then -- RIGHT
+					-- MoveFinger(4)
+					-- currentTimecyc = currentTimecyc + 1
+					-- if currentTimecyc > #filters then currentTimecyc = 0 end
+					
+					-- if currentTimecyc == 0 then 
+						-- ClearTimecycleModifier() 
+					-- else
+						-- SetTimecycleModifier(filters[currentTimecyc])
+					-- end
+					-- DisplayHelpText("Filter Selected: " .. currentTimecyc+1, 1000)
+				-- end
+					
 
 				if (IsControlJustPressed(3, 175)) then -- RIGHT
 					MoveFinger(4)
 					PlaySoundFrontend(-1, "Menu_Accept", "Phone_SoundSet_Michael", 1)
 					
-					if math.abs(currentRow) % 2 == 0 then
-						theme = (theme + 1) % 7
-						AddSetting(GlobalScaleform, 1, "Theme: "..themes[theme+1])
-						SetResourceKvpInt("KGV:PHONE:THEME", theme+1)
+					if currentRow == 0 then
+						theme = theme + 1
+						if theme > #themes then theme = 1 end
+						AddSetting(GlobalScaleform, 1, "Theme: "..themes[theme])
+						SetResourceKvpInt("KGV:PHONE:THEME", theme)
 
 						PushScaleformMovieFunction(GlobalScaleform, "SET_THEME")
-						PushScaleformMovieFunctionParameterInt(theme+1) -- 1-8
+						PushScaleformMovieFunctionParameterInt(theme) -- 1-8
 						PopScaleformMovieFunctionVoid()
-						N_0x83a169eabcdb10a2(PlayerPedId(), theme)
+						N_0x83a169eabcdb10a2(PlayerPedId(), theme-1)
 						
 						PushScaleformMovieFunction(GlobalScaleform, "DISPLAY_VIEW")
 						PushScaleformMovieFunctionParameterInt(18) -- MENU PAGE
 						PushScaleformMovieFunctionParameterInt(0) -- INDEX
 						PopScaleformMovieFunctionVoid()
-					elseif math.abs(currentRow) % 2 == 1 then
-						wallpaper = (wallpaper + 1) % #wallpapers
-						AddSetting(GlobalScaleform, 2, "Background: "..wallpaperNames[wallpaper+1])
-						SetResourceKvpInt("KGV:PHONE:WALLPAPER", wallpaper+1)
+					elseif currentRow == 1 then
+						wallpaper = wallpaper+ 1
+						if wallpaper > #wallpapers then wallpaper = 1 end
+						AddSetting(GlobalScaleform, 2, "Background: "..wallpaperNames[wallpaper])
+						SetResourceKvpInt("KGV:PHONE:WALLPAPER", wallpaper)
 
 						PushScaleformMovieFunction(GlobalScaleform, "SET_BACKGROUND_CREW_IMAGE")
 						BeginTextComponent("STRING")
-						AddTextComponentSubstringPlayerName(wallpapers[wallpaper+1])
+						AddTextComponentSubstringPlayerName(wallpapers[wallpaper])
 						EndTextComponent()
 						PopScaleformMovieFunctionVoid()
 						
@@ -565,6 +595,20 @@ function OpenApp(app)
 				if (IsControlJustPressed(3, 176)) then -- SELECT
 					MoveFinger(5)
 					PlaySoundFrontend(-1, "Menu_Accept", "Phone_SoundSet_Michael", 1)
+
+					print(currentRow)
+					
+					if currentRow == 2 then
+						alternateBrowserControl = not alternateBrowserControl
+						AddSetting(GlobalScaleform, 3, "Browser control: "..GetControlModeName(alternateBrowserControl))
+						SetResourceKvpInt("KGV:PHONE:BROWSERCONTROL", GetControlModeBool(alternateBrowserControl))
+						print(GetControlModeName(alternateBrowserControl))
+						
+						PushScaleformMovieFunction(GlobalScaleform, "DISPLAY_VIEW")
+						PushScaleformMovieFunctionParameterInt(18) -- MENU PAGE
+						PushScaleformMovieFunctionParameterInt(2) -- INDEX
+						PopScaleformMovieFunctionVoid()
+					end
 					
 					-- if math.abs(currentRow) % 2 == 0 then
 						-- theme = (theme + 1) % 7
@@ -624,6 +668,12 @@ function OpenApp(app)
 			-- Wait(500)
 			CellCamActivate(true, true)
 			CellFrontCamActivate(frontCam)
+			
+			
+			PushScaleformMovieFunction(GlobalScaleform, "DISPLAY_VIEW")
+			PushScaleformMovieFunctionParameterInt(16) -- MENU PAGE
+			PushScaleformMovieFunctionParameterInt(0) -- INDEX
+			PopScaleformMovieFunctionVoid()
 			
 			local xOffset = 0.0
 			local yOffset = 1.0
@@ -687,7 +737,7 @@ function OpenApp(app)
 				-- rz = (z+rotz)
 				-- SetEntityRotation(PlayerPedId(), x,y,rz+180.0)
 				
-				if (IsControlJustPressed(3, 23)) then -- TOGGLE FLASH
+				if (IsControlJustPressed(3, 23) and frontCam == false) then -- TOGGLE FLASH
 					if flashEnabled == false then
 						flashEnabled = true
 						DisplayHelpText("⚡ FLASH ENABLED ⚡", 1000)
@@ -738,10 +788,38 @@ function OpenApp(app)
 						StartNetworkedParticleFxNonLoopedOnPedBone("scr_rcpap1_camera", PlayerPedId(), 0.0, 0.0, -0.05, 0.0, 0.0, 90.0, 57005, 1065353216, 0, 0, 0)
 						Wait(50)
 					end
+					
 					TakePhoto()
-					if (WasPhotoTaken() and SavePhoto(-1)) then
+					-- Wait(1000)
+					if WasPhotoTaken() then
 						-- SetLoadingPromptTextEntry("CELL_278")
 						-- ShowLoadingPrompt(1)
+						
+						-- CellCamActivate(false, false)
+						-- SetPedConfigFlag(PlayerPedId(), 242, not true)
+						-- SetPedConfigFlag(PlayerPedId(), 243, not true)
+						-- SetPedConfigFlag(PlayerPedId(), 244, true)
+						
+						-- print(WasPhotoTaken(3))
+							-- N_0x1072f115dab0717e(0, 0)
+							-- N_0xd801cc02177fa3f1()
+							-- N_0x6a12d88881435dca()
+						
+						-- Wait(1000)
+						
+						SavePhoto(-1)
+						
+						-- print(WasPhotoTaken(3))
+						
+						-- while true do Wait(0)
+							
+							-- DrawSprite("PHONE_PHOTO_TEXTURE", "PHONE_PHOTO_TEXTURE", 0.5, 0.5, 1.0, 1.0, 0.0, 255, 255, 255, 255)
+						-- end
+						
+						-- repeat Wait(0) until WasPhotoTaken() ~= 1
+						
+						-- print(WasPhotoTaken(3))
+						
 						ClearPhoto()
 					end
 				end
@@ -824,7 +902,6 @@ end
 contactAmount = 0
 
 Citizen.CreateThread(function()
-
 	DestroyMobilePhone()
 	phone = false
 	GlobalScaleform = RequestScaleformMovie("cellphone_ifruit")
@@ -850,22 +927,24 @@ Citizen.CreateThread(function()
 		-- contactAmount = contactAmount + 1
 	-- end
 	
+	alternateBrowserControl = GetResourceKvpInt("KGV:PHONE:BROWSERCONTROL") == 1
+	
 	wallpaper = GetResourceKvpInt("KGV:PHONE:WALLPAPER")
+	if wallpaper > #wallpapers then wallpaper = 1 end
 	if wallpaper == 0 then wallpaper = 1 end
 
 	-- local wallpaper = PurpleTartan
 
-	RequestStreamedTextureDict(wallpapers[wallpaper])
-	repeat Wait(0) until HasStreamedTextureDictLoaded(wallpapers[wallpaper])
+	-- RequestStreamedTextureDict(wallpapers[wallpaper])
+	-- repeat Wait(0) until HasStreamedTextureDictLoaded(wallpapers[wallpaper])
 	
-	theme = GetResourceKvpInt("KGV:PHONE:THEME")
+	theme = GetResourceKvpInt("KGV:PHONE:THEME") % #themes
+	if theme > #themes then theme = 1 end
 	if theme == 0 then theme = 1 end
 
 	PushScaleformMovieFunction(GlobalScaleform, "SET_THEME")
 	PushScaleformMovieFunctionParameterInt(theme) -- 1-8
 	PopScaleformMovieFunctionVoid()
-	
-	theme = theme - 1
 
 	PushScaleformMovieFunction(GlobalScaleform, "SET_SLEEP_MODE")
 	PushScaleformMovieFunctionParameterInt(0)
